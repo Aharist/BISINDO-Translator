@@ -125,6 +125,7 @@ function Information() {
                     className="card-image"
                     muted
                     playsInline
+                    disableRemotePlayback
                   />
                 )}
 
@@ -161,6 +162,7 @@ function Information() {
               muted 
               controls 
               className="modal-video"
+              disableRemotePlayback
             />
           </div>
         </div>
