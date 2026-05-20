@@ -1,0 +1,11 @@
+opencv-python
+mediapipe==0.10.11
+scikit-learn
+pandas
+numpy
+tensorflow==2.15.0
+fastapi           # Framework backend kita
+uvicorn           # Server untuk menjalankan FastAPI
+websockets        # Untuk komunikasi video real-time dari React ke Python
+python-multipart  # Untuk menerima file/data dari web
+#uvicorn main:app --reload

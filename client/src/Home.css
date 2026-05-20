@@ -1,0 +1,321 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1400px;
+  padding: var(--spacing-xl);
+  background-color: var(--canvas);
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.33;
+  letter-spacing: -0.6px;
+  color: var(--ink);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
+.kalimat-box {
+  width: 100%;
+  background-color: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: var(--spacing-xl);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.4;
+  word-wrap: break-word;
+  flex-wrap: wrap;
+}
+
+.kalimat-section {
+  width: 100%;
+  margin-bottom: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.kalimat-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-xl);
+  width: 100%;
+  margin-bottom: var(--spacing-xl);
+}
+
+.webcam-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.webcam-container {
+  position: relative;
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  background-color: var(--surface-dark);
+  aspect-ratio: 16 / 9;
+}
+
+.webcam-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: scaleX(-1);
+  object-fit: cover;
+}
+
+.controls {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  background-color: var(--surface-soft);
+  color: var(--ink);
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  height: 40px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'IBM Plex Sans Variable', -apple-system, system-ui, sans-serif;
+}
+
+.btn:hover {
+  background-color: var(--hairline);
+}
+
+.btn.active {
+  background-color: var(--primary);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.btn.active:hover {
+  background-color: var(--primary-pressed);
+}
+
+.reset-btn {
+  background-color: var(--accent-red-soft);
+  color: var(--accent-red);
+}
+
+.reset-btn:hover {
+  background-color: var(--accent-red);
+  color: var(--surface-card);
+}
+
+/* Prediction Panel */
+.prediction-panel {
+  background-color: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-height: 300px;
+}
+
+.prediction-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: var(--spacing-sm);
+}
+
+.prediction-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.prediction-text {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.confidence-display {
+  font-size: 0.875rem;
+  color: var(--body);
+  font-weight: 500;
+}
+
+.confidence-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--hairline-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-pressed));
+  transition: width 0.3s ease;
+}
+
+.prediction-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--mute);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.hasil-box {
+  width: 100%;
+  background-color: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.mode-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+
+  .prediction-panel {
+    min-height: 200px;
+  }
+
+  .prediction-text {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-container {
+    padding: var(--spacing-md);
+  }
+
+  .title {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .kalimat-box {
+    font-size: 1rem;
+    padding: var(--spacing-md);
+    min-height: 50px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .main-content {
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .webcam-container {
+    aspect-ratio: 9 / 12;
+  }
+
+  .prediction-panel {
+    min-height: 250px;
+  }
+
+  .prediction-text {
+    font-size: 1.5rem;
+  }
+
+  .controls {
+    gap: var(--spacing-sm);
+  }
+
+  .btn {
+    padding: 6px 12px;
+    height: 36px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container {
+    padding: var(--spacing-sm);
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .kalimat-box {
+    font-size: 0.9rem;
+    padding: var(--spacing-sm);
+    min-height: 45px;
+  }
+
+  .webcam-container {
+    aspect-ratio: 3 / 4;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 80px;
+  }
+
+  .prediction-panel {
+    min-height: 200px;
+  }
+
+  .prediction-text {
+    font-size: 1.25rem;
+  }
+
+  .prediction-header {
+    font-size: 0.875rem;
+  }
+
+  .confidence-display {
+    font-size: 0.75rem;
+  }
+}

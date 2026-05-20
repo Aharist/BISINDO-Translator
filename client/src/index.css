@@ -1,0 +1,153 @@
+:root {
+  /* Brand & Accent Colors */
+  --primary: #f7a501;
+  --primary-pressed: #dd9001;
+  --primary-active: #b17816;
+  
+  /* Surface Colors */
+  --canvas: #eeefe9;
+  --surface-soft: #e5e7e0;
+  --surface-card: #ffffff;
+  --surface-doc: #fcfcfa;
+  --surface-dark: #23251d;
+  
+  /* Text Colors */
+  --ink: #23251d;
+  --body: #4d4f46;
+  --charcoal: #33342d;
+  --mute: #6c6e63;
+  --ash: #9b9c92;
+  --stone: #b6b7af;
+  
+  /* Links & Accents */
+  --link-blue: #1d4ed8;
+  --link-teal: #1078a3;
+  --accent-blue: #2c84e0;
+  --accent-blue-soft: #dceaf6;
+  --accent-red: #cd4239;
+  --accent-red-soft: #f7d6d3;
+  --accent-green: #2c8c66;
+  --accent-green-soft: #d9eddf;
+  --accent-purple: #7c44a6;
+  --accent-purple-soft: #e7d8ee;
+  
+  /* Borders */
+  --hairline: #bfc1b7;
+  --hairline-soft: #dcdfd2;
+  
+  /* Spacing */
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+  --spacing-section: 80px;
+
+  font-family: 'IBM Plex Sans Variable', -apple-system, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--body);
+  background: var(--canvas);
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--canvas);
+  color: var(--body);
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+h1,
+h2 {
+  font-family: 'IBM Plex Sans Variable', -apple-system, system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+h1 {
+  font-size: 36px;
+  letter-spacing: -0.6px;
+  margin: 0;
+}
+
+h2 {
+  font-size: 24px;
+  letter-spacing: -0.24px;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+  color: var(--body);
+}
+
+code {
+  font-family: ui-monospace, 'Source Code Pro', monospace;
+  font-size: 14px;
+  display: inline-flex;
+  border-radius: 2px;
+  padding: 2px 6px;
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 13px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+}

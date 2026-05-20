@@ -1,0 +1,85 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Brand & Accent Colors */
+  --primary: #f7a501;
+  --primary-pressed: #dd9001;
+  --primary-active: #b17816;
+  
+  /* Surface Colors */
+  --canvas: #eeefe9;
+  --surface-soft: #e5e7e0;
+  --surface-card: #ffffff;
+  --surface-doc: #fcfcfa;
+  --surface-dark: #23251d;
+  
+  /* Text Colors */
+  --ink: #23251d;
+  --body: #4d4f46;
+  --charcoal: #33342d;
+  --mute: #6c6e63;
+  --ash: #9b9c92;
+  --stone: #b6b7af;
+  
+  /* Links & Accents */
+  --link-blue: #1d4ed8;
+  --link-teal: #1078a3;
+  --accent-blue: #2c84e0;
+  --accent-blue-soft: #dceaf6;
+  --accent-red: #cd4239;
+  --accent-red-soft: #f7d6d3;
+  --accent-green: #2c8c66;
+  --accent-green-soft: #d9eddf;
+  --accent-purple: #7c44a6;
+  --accent-purple-soft: #e7d8ee;
+  
+  /* Borders */
+  --hairline: #bfc1b7;
+  --hairline-soft: #dcdfd2;
+  
+  /* Spacing */
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+  --spacing-section: 80px;
+}
+
+html, body {
+  background-color: var(--canvas);
+  color: var(--body);
+  font-family: 'IBM Plex Sans Variable', -apple-system, system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.main-content-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+  padding: 0;
+  width: 100%;
+}
