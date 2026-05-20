@@ -19,3 +19,5 @@ coverage
 *.pid.lock
 *.log
 *.sql
+client/src/assets
+contoh
