@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import './Information.css';
 
+// ==========================================
+// TRIK VITE: Membaca semua file .mp4 di folder kata secara otomatis
+// ==========================================
+const kataVideos = import.meta.glob('./assets/1DATA/kata/*.mp4', { eager: true });
+
 function Information() {
   const [activeTab, setActiveTab] = useState('huruf');
   const [items, setItems] = useState([]);
-  
-  // State untuk melacak video mana yang sedang dibuka di pop-up
   const [selectedVideo, setSelectedVideo] = useState(null);
 
   useEffect(() => {
@@ -40,22 +43,32 @@ function Information() {
         };
       });
     } else if (tab === 'kata') {
-      // MASUKKAN NAMA-NAMA FILE MP4 KAMU DI SINI (tanpa .mp4)
-      const daftarKata = ["Anak", "Makan", "Saya", "Halo"]; 
       
-      return daftarKata.map((word, i) => ({
-        id: `kata-${i}`,
-        name: word,
-        image: null, // Kita set null karena tidak punya file JPG
-        video: new URL(`./assets/1DATA/kata/${word}.mp4`, import.meta.url).href,
-        description: `Peragakan isyarat kata "${word}"`
-      }));
+      // ==========================================
+      // LOGIKA LOOPING OTOMATIS DARI FOLDER
+      // ==========================================
+      // Object.entries akan mengubah hasil glob Vite menjadi array yang bisa di-map
+      return Object.entries(kataVideos).map(([path, module], i) => {
+        
+        // Memotong string path (misal: "../assets/1DATA/kata/Anak.mp4") 
+        // untuk mengambil kata "Anak" saja
+        const fileName = path.split('/').pop(); // Menghasilkan "Anak.mp4"
+        const wordName = fileName.replace('.mp4', ''); // Menghasilkan "Anak"
+        
+        return {
+          id: `kata-${i}`,
+          name: wordName, // Nama di kartu otomatis pakai nama file
+          image: null, 
+          video: module.default, // URL video yang sudah diproses otomatis oleh Vite
+          description: `Peragakan isyarat kata "${wordName}"`
+        };
+      });
+
     }
     return [];
   };
 
   const handleCardClick = (item) => {
-    // Buka pop-up jika item punya video
     if (item.video) {
       setSelectedVideo(item.video);
     }
@@ -99,8 +112,6 @@ function Information() {
               onClick={() => handleCardClick(item)}
             >
               <div className="card-image-wrapper">
-                
-                {/* LOGIKA BARU: Jika ada gambar, tampilkan IMG. Jika tidak, jadikan VIDEO sebagai thumbnail */}
                 {item.image ? (
                   <img 
                     src={item.image} 
@@ -110,7 +121,7 @@ function Information() {
                   />
                 ) : (
                   <video 
-                    src={`${item.video}#t=0.1`} /* #t=0.1 trik mengambil detik ke 0.1 sbg foto sampul */
+                    src={`${item.video}#t=0.1`} 
                     className="card-image"
                     muted
                     playsInline
