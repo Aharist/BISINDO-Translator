@@ -4,6 +4,9 @@ import './Information.css';
 function Information() {
   const [activeTab, setActiveTab] = useState('huruf');
   const [items, setItems] = useState([]);
+  
+  // State untuk melacak video mana yang sedang dibuka di pop-up
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
   useEffect(() => {
     loadData(activeTab);
@@ -19,26 +22,42 @@ function Information() {
       return Array.from({ length: 26 }, (_, i) => {
         const letter = String.fromCharCode(65 + i);
         return {
-          id: i,
+          id: `huruf-${i}`,
           name: letter,
-          // TRIK VITE: Load gambar dinamis dari folder src/assets
-          // (Pastikan ekstensi gambarmu benar .jpg atau .png)
           image: new URL(`./assets/1DATA/huruf/${letter}.jpg`, import.meta.url).href,
-          description: `Huruf ${letter}`
+          video: null, 
+          description: `Isyarat Huruf ${letter}`
         };
       });
     } else if (tab === 'angka') {
       return Array.from({ length: 10 }, (_, i) => {
         return {
-          id: i,
+          id: `angka-${i}`,
           name: i.toString(),
-          // TRIK VITE: Load gambar dinamis dari folder src/assets
           image: new URL(`./assets/1DATA/angka/${i}.JPG`, import.meta.url).href,
-          description: `Angka ${i}`
+          video: null, 
+          description: `Isyarat Angka ${i}`
         };
       });
-    } else {
-      return [];
+    } else if (tab === 'kata') {
+      // MASUKKAN NAMA-NAMA FILE MP4 KAMU DI SINI (tanpa .mp4)
+      const daftarKata = ["Anak", "Makan", "Saya", "Halo"]; 
+      
+      return daftarKata.map((word, i) => ({
+        id: `kata-${i}`,
+        name: word,
+        image: null, // Kita set null karena tidak punya file JPG
+        video: new URL(`./assets/1DATA/kata/${word}.mp4`, import.meta.url).href,
+        description: `Peragakan isyarat kata "${word}"`
+      }));
+    }
+    return [];
+  };
+
+  const handleCardClick = (item) => {
+    // Buka pop-up jika item punya video
+    if (item.video) {
+      setSelectedVideo(item.video);
     }
   };
 
@@ -66,23 +85,43 @@ function Information() {
         <button 
           className={`tab-btn ${activeTab === 'kata' ? 'active' : ''}`}
           onClick={() => setActiveTab('kata')}
-          disabled
         >
-          Kata (Coming Soon)
+          Kata
         </button>
       </div>
 
       <div className="cards-container">
         {items.length > 0 ? (
           items.map((item) => (
-            <div key={item.id} className="card">
+            <div 
+              key={item.id} 
+              className={`card ${item.video ? 'playable-card' : ''}`}
+              onClick={() => handleCardClick(item)}
+            >
               <div className="card-image-wrapper">
-                <img 
-                  src={item.image} 
-                  alt={item.description}
-                  className="card-image"
-                  onError={handleImageError}
-                />
+                
+                {/* LOGIKA BARU: Jika ada gambar, tampilkan IMG. Jika tidak, jadikan VIDEO sebagai thumbnail */}
+                {item.image ? (
+                  <img 
+                    src={item.image} 
+                    alt={item.description}
+                    className="card-image"
+                    onError={handleImageError}
+                  />
+                ) : (
+                  <video 
+                    src={`${item.video}#t=0.1`} /* #t=0.1 trik mengambil detik ke 0.1 sbg foto sampul */
+                    className="card-image"
+                    muted
+                    playsInline
+                  />
+                )}
+
+                {item.video && (
+                  <div className="play-overlay">
+                    <span>▶ Putar Video</span>
+                  </div>
+                )}
               </div>
               <div className="card-content">
                 <div className="card-name">{item.name}</div>
@@ -96,6 +135,25 @@ function Information() {
           </div>
         )}
       </div>
+
+      {/* MODAL POP-UP VIDEO */}
+      {selectedVideo && (
+        <div className="modal-overlay" onClick={() => setSelectedVideo(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal-btn" onClick={() => setSelectedVideo(null)}>
+              &times;
+            </button>
+            <video 
+              src={selectedVideo} 
+              autoPlay 
+              loop 
+              muted 
+              controls 
+              className="modal-video"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
