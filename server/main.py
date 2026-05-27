@@ -112,7 +112,7 @@ async def websocket_endpoint(websocket: WebSocket):
     sequence = deque(maxlen=30)         # Word model sequence buffer (sliding window)
     history_abjad = deque(maxlen=5)     # Alphabet temporal smoothing queue (size 5)
     history_angka = deque(maxlen=5)     # Number temporal smoothing queue (size 5)
-    history_kata = deque(maxlen=15)     # Word temporal smoothing queue (size 15)
+    history_kata = deque(maxlen=5)      # Word temporal smoothing queue (size 5, early exit at 3)
     
     # Tracking variables for anti-spam (preventing repeated inputs)
     last_appended_char = ""
@@ -342,13 +342,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 if model_kata is None:
                     status_label = "Model Kata tidak termuat"
                 else:
+                    # Always append to sequence (zero-pad if no hands), matching local script behavior
                     if hands_detected:
                         sequence.append(hands_data)
                     else:
-                        # Clear sequence buffer to handle no-sign/hand down conditions
-                        sequence.clear()
-                        history_kata.append("Unknown")
-                        status_label = "Tangan tidak terdeteksi"
+                        sequence.append([0.0] * 126)
                         
                     if len(sequence) == 30:
                         seq_array = np.array(list(sequence), dtype=np.float32)
@@ -368,14 +366,18 @@ async def websocket_endpoint(websocket: WebSocket):
                         else:
                             history_kata.append("Unknown")
                     else:
-                        if hands_detected:
-                            status_label = f"Mengumpulkan frame... ({len(sequence)}/30)"
-                        history_kata.append("Unknown")
+                        # Buffer belum penuh - JANGAN masukkan apapun ke history_kata
+                        # (Bug sebelumnya: memasukkan "Unknown" di sini mempolusi history)
+                        status_label = f"Mengumpulkan frame... ({len(sequence)}/30)"
                         
-                    # Smooth predictions over history
-                    if len(history_kata) == 15:
+                    # Early consensus check: mulai cek begitu ada >= 3 prediksi
+                    hist_len = len(history_kata)
+                    if hist_len >= 3:
                         most_common, count = Counter(history_kata).most_common(1)[0]
-                        if most_common != "Unknown" and count >= 10:
+                        # Perlu >= 70% consensus (3/3, 3/4, 4/5)
+                        threshold = max(3, int(hist_len * 0.7))
+                        
+                        if most_common != "Unknown" and count >= threshold:
                             hasil_prediksi = most_common
                             confidence = raw_conf if len(sequence) == 30 else 0.0
                             status_label = "Stabil"
@@ -395,12 +397,14 @@ async def websocket_endpoint(websocket: WebSocket):
                             else:
                                 status_label = "Tidak yakin"
                             
-                            if most_common == "Unknown" and count >= 10:
+                            # Reset anti-spam lock when consistently Unknown
+                            if most_common == "Unknown" and count >= threshold:
                                 reset_kata = True
                                 last_appended_word = ""
-                    else:
-                        if status_label == "":
-                            status_label = f"Menunggu kestabilan... ({len(history_kata)}/15)"
+                    elif len(sequence) == 30:
+                        # Sudah mulai prediksi tapi history masih < 3
+                        status_label = f"Menunggu kestabilan... ({hist_len}/3)"
+                    # else: status_label sudah diisi "Mengumpulkan frame..." di atas
             
             elapsed = time.time() - start_time
             
