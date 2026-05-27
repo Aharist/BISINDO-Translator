@@ -9,3 +9,4 @@ uvicorn           # Server untuk menjalankan FastAPI
 websockets        # Untuk komunikasi video real-time dari React ke Python
 python-multipart  # Untuk menerima file/data dari web
 #uvicorn main:app --reload
+#uvicorn main:app --port 8000

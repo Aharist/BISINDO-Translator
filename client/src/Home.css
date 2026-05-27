@@ -319,3 +319,208 @@
     font-size: 0.75rem;
   }
 }
+
+/* Additional Styles for Statuses, Alerts, and Controls */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--accent-red-soft);
+  color: var(--accent-red);
+  padding: var(--spacing-md);
+  border-radius: 6px;
+  width: 100%;
+  max-width: 1400px;
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--accent-red);
+  font-weight: 500;
+  position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+.alert-icon {
+  font-size: 1.2rem;
+}
+
+.alert-message {
+  flex: 1;
+}
+
+.alert-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-red);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.webcam-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  height: 100%;
+  color: var(--mute);
+  text-align: center;
+  background-color: var(--surface-dark);
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+}
+
+.status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--surface-card);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-badge.connected .status-dot {
+  background-color: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.status-badge.connecting .status-dot {
+  background-color: var(--accent-blue);
+  animation: pulse 1.5s infinite;
+}
+
+.status-badge.disconnected .status-dot,
+.status-badge.error .status-dot {
+  background-color: var(--accent-red);
+  animation: pulse 1s infinite;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--ink);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-pressed);
+}
+
+.btn-success {
+  background-color: var(--accent-green-soft);
+  color: var(--accent-green);
+}
+
+.btn-success:hover {
+  background-color: var(--accent-green);
+  color: var(--surface-card);
+}
+
+.btn-danger {
+  background-color: var(--accent-red-soft);
+  color: var(--accent-red);
+}
+
+.btn-danger:hover {
+  background-color: var(--accent-red);
+  color: var(--surface-card);
+}
+
+.kalimat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: var(--spacing-sm);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.text-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn-action {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--hairline);
+}
+
+.btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--surface-soft);
+  color: var(--mute);
+}
+
+.kalimat-placeholder {
+  color: var(--mute);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+.panel-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--hairline-soft);
+  padding-top: var(--spacing-sm);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.info-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mute);
+  background-color: var(--surface-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--hairline-soft);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-sm);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
