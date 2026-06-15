@@ -9,12 +9,13 @@ import asyncio
 import logging
 import os
 import sys
+# Import library standar dan pendukung
 from collections import deque, Counter
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from tensorflow.keras.models import load_model
 
-# Setup structured logging
+# Setup structured logging (Konfigurasi pencatatan log/info di terminal agar error mudah terbaca)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -22,9 +23,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("BISINDO_Backend")
 
+# Inisialisasi kerangka FastAPI (Ini yang membuat server berjalan)
 app = FastAPI(title="BISINDO Recognition Server")
 
-# Enable CORS
+# Enable CORS: Mengizinkan request/komunikasi dari domain atau alamat port lain (Frontend React yang berbeda port)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,16 +36,19 @@ app.add_middleware(
 )
 
 # Resolve paths absolutely to prevent working directory issues
+# Memastikan penempatan path direktori akurat misal mencari letak model sekalipun script dijalankan dari luar folder server
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
+# Mengimpor modul logika pemrosesan kerangka tangan bawaan (Preprocessing titik x,y,z jadi array 126 nilai siap olah)
 from preprocessing import extract_landmarks
 
-# Load model registry once at startup
+# Load model registry once at startup (Memuat AI satu kali saja saat server baru menyala agar irit memori dan kecepatan tinggi)
 logger.info("Memuat Model AI ke dalam Server...")
 
 try:
+    # Mengambil jalur path untuk memuat arsitektur Model (.h5) dan File Label Decoder (.pkl)
     model_abjad_path = os.path.join(BASE_DIR, 'models', 'bisindo_cnn1d_model.h5')
     encoder_abjad_path = os.path.join(BASE_DIR, 'models', 'cnn1d_label_encoder.pkl')
     model_abjad = load_model(model_abjad_path)
@@ -76,23 +81,23 @@ except Exception as e:
     logger.error(f"Gagal memuat Model Kata: {e}")
     model_kata, encoder_kata = None, None
 
-# Initialize MediaPipe Hands
+# Initialize MediaPipe Hands (Konfigurasi awal AI pendeteksi telapak tangan bawaan Google)
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=2,
-    min_detection_confidence=0.7
+    static_image_mode=False,     # Karena input berbentuk video real-time dinamis berurutan, kita set False
+    max_num_hands=2,             # Maksimal memperbolehkan deteksi untuk 2 tangan sekaligus (meskipun model CNN mungkin membaca input 126 titik gabungan)
+    min_detection_confidence=0.7 # Toleransi kepercayaan/sensitivitas deteksi minimum batas MediaPipe yaitu 70%
 )
 
 logger.info("Server FastAPI Siap Beroperasi! (Ready)")
 
-
+# Endpoint rute sederhana mengecek apakah server Backend hidup atau tidak
 @app.get("/health")
 def health_check():
     """Simple API status endpoint."""
     return {"status": "ok", "timestamp": time.time()}
 
-
+# Endpoint rute mengecek status apakah ke-tiga AI model h5 berhasil di memori server
 @app.get("/models/status")
 def models_status():
     """Returns load status of ML models."""
@@ -103,23 +108,26 @@ def models_status():
     }
 
 
+# Jalur koneksi utama: WebSocket untuk komunikasi streaming pengiriman urutan frame gambar yang terus menerus dan sangat cepat
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await websocket.accept() # Menyambut/menerima koneksi dari panggilan masuk antarmuka Frontend
     logger.info("Klien terhubung ke WebSocket.")
     
-    # Initialize queues local to this WebSocket connection session
-    sequence = deque(maxlen=30)         # Word model sequence buffer (sliding window)
-    history_abjad = deque(maxlen=5)     # Alphabet temporal smoothing queue (size 5)
-    history_angka = deque(maxlen=5)     # Number temporal smoothing queue (size 5)
-    history_kata = deque(maxlen=5)      # Word temporal smoothing queue (size 5, early exit at 3)
+    # Initialize queues local to this WebSocket connection session (Menyiapkan variabel sesi temporal untuk tiap klien)
+    # Deque membatasi kumpulan array dengan max length, jadi saat over limit, yang terlama/kiri dari antrian otomatis dihapus dari jendela
+    sequence = deque(maxlen=30)         # Word model sequence buffer (Penampungan mode "Kata" butuh kumpulan urutan buffer per 30 frame sekaligus)
+    history_abjad = deque(maxlen=5)     # Alphabet temporal smoothing queue (Voting konsensus: ambil 5 tebakan terakhir dari frame lalu)
+    history_angka = deque(maxlen=5)     # Number temporal smoothing queue (Voting konsensus: ambil 5 tebakan terakhir dari frame lalu)
+    history_kata = deque(maxlen=5)      # Word temporal smoothing queue (Khusus Kata, melihat/menyaring stabilitas hasil buffer 30 frame-nya)
     
-    # Tracking variables for anti-spam (preventing repeated inputs)
+    # Tracking variables for anti-spam (Mencegah sistem mengetik dobel/berulang kata yang sama terus-terusan)
     last_appended_char = ""
     last_appended_number = ""
     last_appended_word = ""
-    last_append_time = 0.0              # Cooldown timestamp tracker
+    last_append_time = 0.0              # Cooldown timestamp tracker (Pencatat waktu terkahir kata ditambah/diketik)
     
+    # Looping utama WebSocket, menahan komunikasi terus terbuka agar sistem sanggup melayani data bertubi-tubi
     while True:
         try:
             data = await websocket.receive_text()
@@ -145,6 +153,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 mode_aktif = "KATA"
                 
             # Handle reset triggers
+            # Reset state dikala user menekan Delete/Backspace atau sistem menangkap tangan diturunkan, history di clear agar mulai baru 
             if payload.get("reset"):
                 sequence.clear()
                 history_abjad.clear()
@@ -164,7 +173,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     "reset_kata": True
                 })
                 continue
-
+# Abaikan bila gambar kosong
+            
+            # Abaikan jika payload gambar di JSON kosong
             if not image_base64:
                 await websocket.send_json({
                     "hasil": None,
@@ -175,10 +186,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
                 continue
                 
+            # Membuang format header base64 (format base64 web misal "data:image/jpeg;base64,xxxx" tersisa yang xxxx string murni saja)
             if "," in image_base64:
                 image_base64 = image_base64.split(",")[1]
                 
             try:
+                # Mengubah teks sandi raksasa Base64 dikonversi ke gambar Array OpenCV
                 img_bytes = base64.b64decode(image_base64)
                 np_arr = np.frombuffer(img_bytes, np.uint8)
                 frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
@@ -203,17 +216,20 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
                 continue
 
-            # Mirror frame and convert color space for MediaPipe
+            # Memutar gambar layaknya cermin karena tangkapan webcam biasanya terbalik
             frame = cv2.flip(frame, 1)
+            # Mengonversi format warna dari BGR (bawaan OpenCV) menjadi RGB (yang dibutuhkan MediaPipe)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
             start_time = time.time()
+            # Menganalisa gambar RGB ke MediaPipe Hands untuk mencari tulang sendi tangan
             results = hands.process(frame_rgb)
             
-            # Centralized preprocessing
+            # Centralized preprocessing (Mengubah objek hasil pelacakan tangan MediaPipe menjadi Array angka mentah berisi 126 nilai kordinat dinormalisasi)
             hands_data = extract_landmarks(results.multi_hand_landmarks)
             hands_detected = results.multi_hand_landmarks is not None and len(results.multi_hand_landmarks) > 0
             
+            # Persiapan wadah menampung hasil tebakan awal
             hasil_prediksi = None
             confidence = 0.0
             status_label = ""
@@ -222,6 +238,7 @@ async def websocket_endpoint(websocket: WebSocket):
             current_time = time.time()
             
             # Execute model predictions asynchronously to prevent event loop blocking
+            # Proses tebak AI Neural Network (TensorFlow) dieksekusi sebagai Threading Latar Belakang (asynchronous) agar tidak membuat WebSocket macet/delay
             if mode_aktif == "ABJAD":
                 # Clean up unrelated buffers
                 sequence.clear()
@@ -234,27 +251,33 @@ async def websocket_endpoint(websocket: WebSocket):
                     status_label = "Model Abjad tidak termuat"
                 else:
                     if hands_detected:
+                        # Menyiapkan bentuk (Shape) Matrix untuk CNN 1D yakni berformat ukuran Batch 1x126x1
                         X_input = np.array([hands_data], dtype=np.float32)
                         X_input = np.expand_dims(X_input, axis=2) # Shape: (1, 126, 1)
                         
-                        # Background thread execution for TensorFlow
+                        # Background thread execution for TensorFlow (menembak hasil nilai Matrix prediksi mentah dari model)
                         preds = await asyncio.to_thread(
                             lambda: model_abjad(X_input, training=False).numpy()[0]
                         )
+                        # Mencari nilai peluang (Confidence Persentase) tertinggi dari seluru tebakan kategori
                         raw_conf = float(np.max(preds))
+                        # Mencari posisi indeks array yang menjadi pemenang kategori tebakan tersebut
                         pred_idx = np.argmax(preds)
                         
-                        # Confidence minimal 0.75 untuk alfabet
+                        # Confidence minimal 0.75 untuk alfabet agar sistem tidak mencetak yang asal tebak
                         if raw_conf >= 0.75:
+                            # Mentranslasi balik index angka kelas (0-25) menjadi Teks Abjad aslinya ('A', 'B', dsb)
                             char_pred = str(encoder_abjad.inverse_transform([pred_idx])[0])
-                            history_abjad.append(char_pred)
+                            history_abjad.append(char_pred) # Simpan hasil di buku memori antrian jendela waktu
                         else:
                             history_abjad.append("Unknown")
                     else:
                         history_abjad.append("Unknown")
                         
-                    # Smooth predictions: valid if same label appears >= 3 times in last 5 predictions
+                    # Smooth predictions (Temporal Smoothing): valid if same label appears >= 3 times in last 5 predictions
+                    # Smoothing memastikan bahwa model harus melihat simbol yang sama 3x dari 5 tangkapan sebelum mencetaknya
                     if len(history_abjad) == 5:
+                        # Cari hasil mana yang paling sering muncul
                         most_common, count = Counter(history_abjad).most_common(1)[0]
                         if most_common != "Unknown" and count >= 3:
                             hasil_prediksi = most_common
@@ -342,24 +365,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 if model_kata is None:
                     status_label = "Model Kata tidak termuat"
                 else:
-                    # Always append to sequence (zero-pad if no hands), matching local script behavior
+                    # Input Mode KATA tidak instan 1x126 nilai saja. 
+                    # KATA membutuhkan urutan berkelanjutan gerak (Sequence). Jadi sistem harus merekam dan menjejali array sequence dulu hingga 30 data (frames) baru tebakannya jalan
                     if hands_detected:
                         sequence.append(hands_data)
                     else:
-                        sequence.append([0.0] * 126)
+                        sequence.append([0.0] * 126) # Sumpal nilai nol sebagai pertanda jeda waktu istirahat (Tidak Deteksi Tangan)
                         
                     if len(sequence) == 30:
+                        # Re-format jejak urutan pergerakan tangan yang sudah cukup 30x126 ini ke dalam Matrix LSTM/Hitungan
                         seq_array = np.array(list(sequence), dtype=np.float32)
                         X_input = np.expand_dims(seq_array, axis=0) # Shape: (1, 30, 126)
                         
-                        # Background thread execution for TensorFlow
+                        # Background thread execution for TensorFlow model urutan KATA yang berat
                         preds = await asyncio.to_thread(
                             lambda: model_kata(X_input, training=False).numpy()[0]
                         )
                         raw_conf = float(np.max(preds))
                         pred_idx = np.argmax(preds)
                         
-                        # Confidence minimal 0.80 untuk kata
+                        # Juru Kunci Threshold: Confidence minimal 0.80 untuk Kata
                         if raw_conf >= 0.80:
                             word_pred = str(encoder_kata.inverse_transform([pred_idx])[0])
                             history_kata.append(word_pred)
