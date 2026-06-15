@@ -41,7 +41,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-# Mengimpor modul logika pemrosesan kerangka tangan bawaan (Preprocessing titik x,y,z jadi array 126 nilai siap olah)
+# Mengimpor modul logika pemrosesan kerangka tangan bawaan
 from preprocessing import extract_landmarks
 
 # Load model registry once at startup (Memuat AI satu kali saja saat server baru menyala agar irit memori dan kecepatan tinggi)
@@ -81,11 +81,11 @@ except Exception as e:
     logger.error(f"Gagal memuat Model Kata: {e}")
     model_kata, encoder_kata = None, None
 
-# Initialize MediaPipe Hands (Konfigurasi awal AI pendeteksi telapak tangan bawaan Google)
+# Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(
     static_image_mode=False,     # Karena input berbentuk video real-time dinamis berurutan, kita set False
-    max_num_hands=2,             # Maksimal memperbolehkan deteksi untuk 2 tangan sekaligus (meskipun model CNN mungkin membaca input 126 titik gabungan)
+    max_num_hands=2,             # Maksimal memperbolehkan deteksi untuk 2 tangan sekaligus
     min_detection_confidence=0.7 # Toleransi kepercayaan/sensitivitas deteksi minimum batas MediaPipe yaitu 70%
 )
 
@@ -108,14 +108,14 @@ def models_status():
     }
 
 
-# Jalur koneksi utama: WebSocket untuk komunikasi streaming pengiriman urutan frame gambar yang terus menerus dan sangat cepat
+# Jalur koneksi utama: WebSocket untuk komunikasi streaming
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept() # Menyambut/menerima koneksi dari panggilan masuk antarmuka Frontend
     logger.info("Klien terhubung ke WebSocket.")
     
-    # Initialize queues local to this WebSocket connection session (Menyiapkan variabel sesi temporal untuk tiap klien)
-    # Deque membatasi kumpulan array dengan max length, jadi saat over limit, yang terlama/kiri dari antrian otomatis dihapus dari jendela
+    # Initialize queues local to this WebSocket connection session
+    # Deque membatasi kumpulan array dengan max length, jadi saat over limit yang plaing lama akan antrian otomatis dihapus dari jendela
     sequence = deque(maxlen=30)         # Word model sequence buffer (Penampungan mode "Kata" butuh kumpulan urutan buffer per 30 frame sekaligus)
     history_abjad = deque(maxlen=5)     # Alphabet temporal smoothing queue (Voting konsensus: ambil 5 tebakan terakhir dari frame lalu)
     history_angka = deque(maxlen=5)     # Number temporal smoothing queue (Voting konsensus: ambil 5 tebakan terakhir dari frame lalu)
@@ -140,8 +140,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_json({"error": "Payload must be valid JSON"})
                 continue
                 
-            mode_raw = payload.get("mode", "KATA")
-            image_base64 = payload.get("image", "")
+            mode_raw = payload.get("mode", "KATA") # mode default
+            image_base64 = payload.get("image", "") # Gambar dikirim dalam format string Base64 dari frontend
             
             # Map frontend modes safely to internal representations
             mode_aktif = mode_raw.upper()
@@ -186,15 +186,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
                 continue
                 
-            # Membuang format header base64 (format base64 web misal "data:image/jpeg;base64,xxxx" tersisa yang xxxx string murni saja)
+            # Membuang format header base64 
             if "," in image_base64:
-                image_base64 = image_base64.split(",")[1]
+                image_base64 = image_base64.split(",")[1] # ambil bagian setelah koma yang merupakan data gambar sebenarnya
                 
             try:
                 # Mengubah teks sandi raksasa Base64 dikonversi ke gambar Array OpenCV
-                img_bytes = base64.b64decode(image_base64)
-                np_arr = np.frombuffer(img_bytes, np.uint8)
-                frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                img_bytes = base64.b64decode(image_base64) # Decode string Base64 menjadi bytes gambar mentah
+                np_arr = np.frombuffer(img_bytes, np.uint8) # Ubah bytes menjadi array NumPy 1D
+                frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR) # Decode array NumPy menjadi format gambar OpenCV (BGR)
             except Exception as e:
                 logger.warning(f"Gagal mendecode frame base64: {e}")
                 await websocket.send_json({
@@ -206,7 +206,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
                 continue
                 
-            if frame is None:
+            if frame is None: 
                 await websocket.send_json({
                     "hasil": None,
                     "confidence": 0.0,
@@ -216,7 +216,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
                 continue
 
-            # Memutar gambar layaknya cermin karena tangkapan webcam biasanya terbalik
+            # mirror gambar karena tangkapan webcam biasanya terbalik
             frame = cv2.flip(frame, 1)
             # Mengonversi format warna dari BGR (bawaan OpenCV) menjadi RGB (yang dibutuhkan MediaPipe)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -257,7 +257,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         
                         # Background thread execution for TensorFlow (menembak hasil nilai Matrix prediksi mentah dari model)
                         preds = await asyncio.to_thread(
-                            lambda: model_abjad(X_input, training=False).numpy()[0]
+                            lambda: model_abjad(X_input, training=False).numpy()[0] 
                         )
                         # Mencari nilai peluang (Confidence Persentase) tertinggi dari seluru tebakan kategori
                         raw_conf = float(np.max(preds))
@@ -315,16 +315,16 @@ async def websocket_endpoint(websocket: WebSocket):
                         X_input = np.array([hands_data], dtype=np.float32)
                         X_input = np.expand_dims(X_input, axis=2) # Shape: (1, 126, 1)
                         
-                        # Background thread execution for TensorFlow
+                        # Background thread execution for TensorFlow 
                         preds = await asyncio.to_thread(
                             lambda: model_angka(X_input, training=False).numpy()[0]
                         )
-                        raw_conf = float(np.max(preds))
-                        pred_idx = np.argmax(preds)
+                        raw_conf = float(np.max(preds)) # Confidence mentah tertinggi dari semua kategori tebakan angka
+                        pred_idx = np.argmax(preds) # Posisi indeks kategori tebakan angka yang menang
                         
                         # Confidence minimal 0.75 untuk angka
                         if raw_conf >= 0.75:
-                            num_pred = str(encoder_angka.inverse_transform([pred_idx])[0])
+                            num_pred = str(encoder_angka.inverse_transform([pred_idx])[0]) 
                             history_angka.append(num_pred)
                         else:
                             history_angka.append("Unknown")
@@ -442,7 +442,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     f"Confidence: {confidence:.2f} | "
                     f"Inference: {elapsed*1000:.1f}ms"
                 )
-            
+            # Kirim hasil prediksi dan status kembali ke frontend dalam format JSON
             await websocket.send_json({
                 "hasil": hasil_prediksi,
                 "confidence": confidence,
