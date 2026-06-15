@@ -1,20 +1,23 @@
+// Mengimpor Hook bawaan React dan komponen pihak ketiga
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Webcam from 'react-webcam';
+import Webcam from 'react-webcam'; // Library kamera web untuk tangkapan antarmuka React
 import './Home.css';
 
 function Home() {
-  const webcamRef = useRef(null);
-  const ws = useRef(null);
-  const frameTimeoutRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
+  // useRef digunakan untuk menyimpan variabel secara konstan yang jika nilainya berubah, ia tidak akan memicu loading (re-render) tampilan UI
+  const webcamRef = useRef(null); // Referensi ke komponen Webcam untuk mengambil perintah screenshot
+  const ws = useRef(null); // Penyimpan referensi jalur koneksi WebSocket
+  const frameTimeoutRef = useRef(null); // Penyimpan timer/jeda untuk trigger pengiriman frame (berguna untuk dibatalkan saat putus)
+  const reconnectTimeoutRef = useRef(null); // Penyimpan timer tunggu untuk auto-reconnect saat server mati
   
-  const [mode, setMode] = useState('KATA'); 
+  // useState digunakan untuk menyimpan data yang kalau nilainya berubah, tulisan di UI layar juga ikut terupdate otomatis
+  const [mode, setMode] = useState('KATA'); // State mode deteksi model AI (KATA, ABJAD, ANGKA)
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(0);
   const [assembledText, setAssembledText] = useState("");
   const [statusText, setStatusText] = useState('Menghubungkan ke server...');
   const [isCameraActive, setIsCameraActive] = useState(true);
-  const [wsStatus, setWsStatus] = useState('connecting'); // 'connecting' | 'connected' | 'disconnected' | 'error'
+  const [wsStatus, setWsStatus] = useState('connecting'); // Status Koneksi: 'connecting' | 'connected' | 'disconnected' | 'error'
   const [errorMsg, setErrorMsg] = useState(null);
 
   // Keep references to state so the WebSocket message handler can access them
@@ -35,18 +38,21 @@ function Home() {
     setStatusText('Mengumpulkan frame...');
   }, [mode]);
 
-  // Centralized frame sender function
+  // Centralized frame sender function (Fungsi utama yang bertugas memotong layar / screenshot dan mengirimkannya ke Backend WebSocket)
+  // Menggunakan useCallback agar fungsi ini menetap rapi di memori dan tidak dibuat ulang terus menerus oleh React setiap ada pembaruan UI
   const sendFrame = useCallback(() => {
+    // Mengecek apakah kamera menyala, WebSocket terbuka, dan komponen Webcam terbaca
     if (isCameraActiveRef.current && ws.current && ws.current.readyState === WebSocket.OPEN && webcamRef.current) {
       try {
-        const imageSrc = webcamRef.current.getScreenshot();
+        const imageSrc = webcamRef.current.getScreenshot(); // Menangkap bingkai gambar yang diencode ke dalam format teks Base64
         if (imageSrc) {
+          // Jika gambar berhasil ditangkap, bungkus jadi string JSON lengkap dengan Mode lalu lempar ke server lewat lorong WS
           ws.current.send(JSON.stringify({
             mode: modeRef.current,
             image: imageSrc
           }));
         } else {
-          // If screenshot failed (e.g. webcam not fully loaded), retry in 100ms
+          // If screenshot failed (e.g. webcam not fully loaded / Lagging browser), retry in 100ms
           frameTimeoutRef.current = setTimeout(sendFrame, 100);
         }
       } catch (err) {
@@ -59,7 +65,7 @@ function Home() {
     sendFrameRef.current = sendFrame;
   }, [sendFrame]);
 
-  // Connect and manage WebSocket connection
+  // Connect and manage WebSocket connection (Fungsi untuk mengurus siklus hidup dan stabilitas saluran WebSocket)
   const connectWebSocket = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -68,20 +74,22 @@ function Home() {
     setWsStatus('connecting');
     setErrorMsg(null);
 
-    // Default address for local FastAPI
+    // Default address for local FastAPI (Menembak alamat web protokol internal WS server Backend lokal di port 8000)
     const socket = new WebSocket('ws://127.0.0.1:8000/ws');
 
+    // Momen pemicu ketika Backend berhasil/setuju menjawab koneksi 
     socket.onopen = () => {
       console.log('✅ Terhubung ke Server AI');
       setWsStatus('connected');
       setErrorMsg(null);
       
-      // Kickstart the frame sending loop if camera is on
+      // Kickstart the frame sending loop if camera is on (Memancing pemicu awal pengiriman frame untuk menjalankan sirkulasi feedback loop)
       if (isCameraActiveRef.current) {
         sendFrame();
       }
     };
 
+    // Momen pemicu ketika koneksi WebSocket terputus dari Backend
     socket.onclose = () => {
       console.log('❌ Terputus dari Server AI');
       setWsStatus('disconnected');
@@ -89,7 +97,7 @@ function Home() {
       setConfidence(0);
       setStatusText('Koneksi terputus');
       
-      // Auto-reconnect after 3 seconds
+      // Fitur Auto-Reconnect: Jika Backend putus/mati/merasa timeout, Frontend akan terus mencoba menyambung ulang otomatis tiap 3 detik 
       reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000);
     };
 
@@ -99,6 +107,7 @@ function Home() {
       setErrorMsg('Gagal menyambung ke server AI. Pastikan backend FastAPI sudah berjalan di port 8000.');
     };
 
+    // Momen saat menerima kiriman balasan pesan chat dari Backend berisi hasil tebakan prediksi
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -111,23 +120,25 @@ function Home() {
 
         const { hasil, confidence: conf, status, append, reset_kata } = data;
 
+        // Mengupdate teks hasil sementara UI secara langsung dengan state
         setPrediction(hasil);
         setConfidence(conf || 0);
         setStatusText(status || '');
 
         if (reset_kata) {
-          // Reset text and predictions
+          // Reset text and predictions (Saat tangan tak ada)
           setPrediction(null);
           setConfidence(0);
         }
 
         // Appending text decided by the backend's smoothing/cooldown logic
+        // Merangkai kalimat: Jika status perintah "append": true ada (karena backend tahu ini sudah presisi konsensus)
         if (append && hasil) {
           setAssembledText((prev) => {
             if (data.mode === 'KATA' || data.mode === 'word') {
-              return prev ? prev + " " + hasil : hasil;
+              return prev ? prev + " " + hasil : hasil; // Diselipkan karakter SPASI kalau modenya adalah urutan kata
             } else {
-              return prev + hasil;
+              return prev + hasil; // Tempel abjad atau nomor berdampingan (tanpa spasi) 
             }
           });
         }
@@ -136,7 +147,8 @@ function Home() {
       }
 
       // Schedule sending the next frame (active feedback loop)
-      // Caps the rate to 10 FPS (100ms interval) to avoid flooding
+      // INI PENTING: Mode Capped Frame FPS. Frontend HANYA berani mengirim frame berikutnya JIKA balasan sebelumnya dari server sudah selesai tiba.
+      // Jeda antrean ditahan 30ms (Ini menjadi pembatasan beban server di rentang FPS +/- 20 hingga 30 agar RAM Backend tidak meleduk terbanting tumpukan paket WebSocket)
       if (isCameraActiveRef.current) {
         frameTimeoutRef.current = setTimeout(() => {
           if (sendFrameRef.current) {
