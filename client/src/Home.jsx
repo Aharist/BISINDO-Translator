@@ -4,32 +4,34 @@ import Webcam from 'react-webcam'; // Library kamera web untuk tangkapan antarmu
 import './Home.css';
 
 function Home() {
-  // useRef digunakan untuk menyimpan variabel secara konstan yang jika nilainya berubah, ia tidak akan memicu loading (re-render) tampilan UI
+  // menyimpan variabel secara konstan yang jika nilainya berubah
   const webcamRef = useRef(null); // Referensi ke komponen Webcam untuk mengambil perintah screenshot
   const ws = useRef(null); // Penyimpan referensi jalur koneksi WebSocket
-  const frameTimeoutRef = useRef(null); // Penyimpan timer/jeda untuk trigger pengiriman frame (berguna untuk dibatalkan saat putus)
+  const frameTimeoutRef = useRef(null); // Penyimpan timer/jeda untuk trigger pengiriman frame
   const reconnectTimeoutRef = useRef(null); // Penyimpan timer tunggu untuk auto-reconnect saat server mati
   
-  // useState digunakan untuk menyimpan data yang kalau nilainya berubah, tulisan di UI layar juga ikut terupdate otomatis
+  // menyimpan data yang kalau nilainya berubah
   const [mode, setMode] = useState('KATA'); // State mode deteksi model AI (KATA, ABJAD, ANGKA)
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(0);
-  const [assembledText, setAssembledText] = useState("");
+  const [assembledText, setAssembledText] = useState(""); 
   const [statusText, setStatusText] = useState('Menghubungkan ke server...');
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [wsStatus, setWsStatus] = useState('connecting'); // Status Koneksi: 'connecting' | 'connected' | 'disconnected' | 'error'
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Keep references to state so the WebSocket message handler can access them
-  // without needing to close and reopen the socket connection.
+  // Ref untuk menyimpan nilai yang sering diakses dalam callback
+  // tanpa harus memasukkan ke dependency array
   const isCameraActiveRef = useRef(isCameraActive);
   const modeRef = useRef(mode);
   const sendFrameRef = useRef(null);
 
+  // Sync refs dengan state untuk akses stabil dalam callback
   useEffect(() => {
     isCameraActiveRef.current = isCameraActive;
   }, [isCameraActive]);
 
+  // Reset prediksi dan status saat mode berubah
   useEffect(() => {
     modeRef.current = mode;
     // Clear prediction details when switching modes
@@ -38,8 +40,8 @@ function Home() {
     setStatusText('Mengumpulkan frame...');
   }, [mode]);
 
-  // Centralized frame sender function (Fungsi utama yang bertugas memotong layar / screenshot dan mengirimkannya ke Backend WebSocket)
-  // Menggunakan useCallback agar fungsi ini menetap rapi di memori dan tidak dibuat ulang terus menerus oleh React setiap ada pembaruan UI
+  // Centralized frame sender function
+  // Menggunakan useCallback agar fungsi ini menetap rapi di memori 
   const sendFrame = useCallback(() => {
     // Mengecek apakah kamera menyala, WebSocket terbuka, dan komponen Webcam terbaca
     if (isCameraActiveRef.current && ws.current && ws.current.readyState === WebSocket.OPEN && webcamRef.current) {
@@ -61,11 +63,12 @@ function Home() {
     }
   }, []);
 
+  // Menyimpan referensi fungsi sendFrame agar bisa diakses dengan stabil dalam callback WebSocket
   useEffect(() => {
     sendFrameRef.current = sendFrame;
   }, [sendFrame]);
 
-  // Connect and manage WebSocket connection (Fungsi untuk mengurus siklus hidup dan stabilitas saluran WebSocket)
+  // Connect and manage WebSocket connection
   const connectWebSocket = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -74,7 +77,7 @@ function Home() {
     setWsStatus('connecting');
     setErrorMsg(null);
 
-    // Default address for local FastAPI (Menembak alamat web protokol internal WS server Backend lokal di port 8000)
+    // Default address for local FastAPI
     const socket = new WebSocket('ws://127.0.0.1:8000/ws');
 
     // Momen pemicu ketika Backend berhasil/setuju menjawab koneksi 
@@ -131,8 +134,7 @@ function Home() {
           setConfidence(0);
         }
 
-        // Appending text decided by the backend's smoothing/cooldown logic
-        // Merangkai kalimat: Jika status perintah "append": true ada (karena backend tahu ini sudah presisi konsensus)
+        // Merangkai kalimat: Jika status perintah "append": true ada pada balasan server
         if (append && hasil) {
           setAssembledText((prev) => {
             if (data.mode === 'KATA' || data.mode === 'word') {
@@ -161,19 +163,19 @@ function Home() {
     ws.current = socket;
   }, [sendFrame]);
 
-  // Initial connection
+  // Inisialisasi koneksi WebSocket saat komponen pertama kali dimuat
   useEffect(() => {
     connectWebSocket();
 
     return () => {
       if (ws.current) {
-        ws.current.close();
+        ws.current.close(); // Tutup koneksi WebSocket saat komponen dilepas
       }
       if (frameTimeoutRef.current) {
-        clearTimeout(frameTimeoutRef.current);
+        clearTimeout(frameTimeoutRef.current); // Bersihkan timer pengiriman frame saat komponen dilepas 
       }
       if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+        clearTimeout(reconnectTimeoutRef.current); // Bersihkan timer auto-reconnect saat komponen dilepas
       }
     };
   }, [connectWebSocket]);
@@ -181,9 +183,9 @@ function Home() {
   // Trigger frame send when webcam turns back on
   useEffect(() => {
     if (isCameraActive && ws.current && ws.current.readyState === WebSocket.OPEN) {
-      // Clear any existing timeouts first to avoid multiple concurrent loops
+      // Jika kamera diaktifkan kembali, segera kirim frame untuk memulai kembali loop prediksi
       if (frameTimeoutRef.current) clearTimeout(frameTimeoutRef.current);
-      sendFrame();
+      sendFrame(); 
     } else if (!isCameraActive) {
       if (frameTimeoutRef.current) clearTimeout(frameTimeoutRef.current);
       setPrediction(null);
@@ -206,7 +208,7 @@ function Home() {
   // Keyboard shortcut for Backspace to reset
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Backspace' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+      if (e.key === 'Backspace' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') { 
         handleReset();
       }
     };
