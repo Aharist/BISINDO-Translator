@@ -173,7 +173,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     "reset_kata": True
                 })
                 continue
-# Abaikan bila gambar kosong
             
             # Abaikan jika payload gambar di JSON kosong
             if not image_base64:
