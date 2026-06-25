@@ -8,6 +8,11 @@ The system integrates three machine learning models:
 3. **Word model** (CNN + LSTM hybrid) to translate sequences of movements into words.
 
 ---
+Datasets:
+1. Alphabets :https://www.kaggle.com/datasets/agungmrf/indonesian-sign-language-bisindo 
+2. Numbers: https://github.com/ardamavi/Sign-Language-Digits-Dataset
+3. Words: https://www.kaggle.com/datasets/xazhurea/test500
+
 
 ## Fitur Utama & Perbaikan Stabilitas
 
